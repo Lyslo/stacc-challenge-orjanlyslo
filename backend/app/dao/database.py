@@ -3,6 +3,8 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
 from dotenv import load_dotenv
+import asyncpg
+from contextlib import asynccontextmanager
 
 load_dotenv()
 
@@ -24,4 +26,18 @@ def get_db():
     try:
         yield db
     finally:
-        db.close() 
+        db.close()
+
+@asynccontextmanager
+async def get_db_connection():
+    conn = await asyncpg.connect(
+        user=POSTGRES_USER,
+        password=POSTGRES_PASSWORD,
+        database=POSTGRES_DB,
+        host=POSTGRES_HOST,
+        port=POSTGRES_PORT
+    )
+    try:
+        yield conn
+    finally:
+        await conn.close() 
