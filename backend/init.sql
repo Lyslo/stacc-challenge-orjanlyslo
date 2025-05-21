@@ -1,11 +1,23 @@
--- Create accounts table
+-- Create users table
+CREATE TABLE IF NOT EXISTS users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    username VARCHAR(50) UNIQUE NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    date_of_birth DATE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create accounts table with user_id reference
 CREATE TABLE IF NOT EXISTS accounts (
     id VARCHAR(10) PRIMARY KEY,
     account_number VARCHAR(20) NOT NULL,
     account_type VARCHAR(20) NOT NULL,
     balance DECIMAL(10,2) NOT NULL,
     currency VARCHAR(3) NOT NULL,
-    owner VARCHAR(50) NOT NULL
+    user_id UUID NOT NULL REFERENCES users(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Create transactions table
@@ -19,11 +31,47 @@ CREATE TABLE IF NOT EXISTS transactions (
     FOREIGN KEY (account_id) REFERENCES accounts(id)
 );
 
+-- Insert test user (Alice)
+INSERT INTO users (username, email, date_of_birth)
+VALUES ('Alice', 'alice@example.com', '1990-01-01')
+ON CONFLICT (username) DO NOTHING;
+
 -- Insert sample accounts data
-INSERT INTO accounts (id, account_number, account_type, balance, currency, owner) VALUES
-    ('acc123', '********1234', 'Checking', 15000.25, 'NOK', 'Alice'),
-    ('acc456', '********5678', 'Savings', 25000.75, 'NOK', 'Alice'),
-    ('acc789', '********9101', 'Pension', 25000.75, 'NOK', 'Alice');
+INSERT INTO accounts (id, account_number, account_type, balance, currency, user_id)
+SELECT 
+    'acc123',
+    '********1234',
+    'Checking',
+    15000.25,
+    'NOK',
+    id
+FROM users
+WHERE username = 'Alice'
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO accounts (id, account_number, account_type, balance, currency, user_id)
+SELECT 
+    'acc456',
+    '********5678',
+    'Savings',
+    25000.75,
+    'NOK',
+    id
+FROM users
+WHERE username = 'Alice'
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO accounts (id, account_number, account_type, balance, currency, user_id)
+SELECT 
+    'acc789',
+    '********9101',
+    'Pension',
+    25000.75,
+    'NOK',
+    id
+FROM users
+WHERE username = 'Alice'
+ON CONFLICT (id) DO NOTHING;
 
 -- Insert sample transactions data
 INSERT INTO transactions (id, date, description, amount, currency, account_id) VALUES
