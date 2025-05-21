@@ -1,66 +1,80 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { api, Account, Transaction } from '../services/api';
 
-interface Account {
-  id: string;
-  account_number: string;
-  account_type: string;
-  balance: number;
-  currency: string;
-  owner: string;
+interface AnalyticsProps {
+  userId?: string;
 }
 
-interface Transaction {
-  id: string;
-  date: string;
-  description: string;
-  amount: number;
-  currency: string;
-  account_id: string;
-}
-
-const Analytics: React.FC = () => {
+const Analytics: React.FC<AnalyticsProps> = ({ userId }) => {
   const [selectedAccount, setSelectedAccount] = useState<string | null>(null);
-  const [accounts] = useState<Account[]>([
-    {
-      id: 'acc123',
-      account_number: '********1234',
-      account_type: 'Checking',
-      balance: 15000.25,
-      currency: 'NOK',
-      owner: 'Alice'
-    },
-    {
-      id: 'acc456',
-      account_number: '********5678',
-      account_type: 'Savings',
-      balance: 25000.75,
-      currency: 'NOK',
-      owner: 'Alice'
-    }
-  ]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const [transactions] = useState<Transaction[]>([
-    {
-      id: 'txn001',
-      date: '2023-08-15',
-      description: 'Grocery Store',
-      amount: -75.50,
-      currency: 'NOK',
-      account_id: 'acc123'
-    },
-    {
-      id: 'txn002',
-      date: '2023-08-14',
-      description: 'Paycheck Deposit',
-      amount: 2500.00,
-      currency: 'NOK',
-      account_id: 'acc123'
-    }
-  ]);
+  useEffect(() => {
+    const fetchAccounts = async () => {
+      if (!userId) {
+        setLoading(false);
+        return;
+      }
 
-  const filteredTransactions = selectedAccount
-    ? transactions.filter(t => t.account_id === selectedAccount)
-    : [];
+      try {
+        const accountsData = await api.getUserAccounts(userId);
+        setAccounts(accountsData);
+        if (accountsData.length > 0) {
+          setSelectedAccount(accountsData[0].id);
+        }
+      } catch (err) {
+        setError('Failed to load accounts');
+        console.error('Error fetching accounts:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAccounts();
+  }, [userId]);
+
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      if (!selectedAccount) return;
+
+      try {
+        const transactionsData = await api.getAccountTransactions(selectedAccount);
+        setTransactions(transactionsData);
+      } catch (err) {
+        setError('Failed to load transactions');
+        console.error('Error fetching transactions:', err);
+      }
+    };
+
+    fetchTransactions();
+  }, [selectedAccount]);
+
+  if (!userId) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-xl text-gray-600">Please log in to view your accounts</div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-xl text-gray-600">Loading accounts...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-xl text-red-600">{error}</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -106,7 +120,7 @@ const Analytics: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredTransactions.map((transaction) => (
+                  {transactions.map((transaction) => (
                     <tr key={transaction.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {new Date(transaction.date).toLocaleDateString()}

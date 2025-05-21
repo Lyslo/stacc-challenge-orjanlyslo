@@ -7,7 +7,7 @@ class TransactionDAO:
     async def get_transactions_by_account_id(account_id: str) -> List[Transaction]:
         async with get_db_connection() as db:
             query = """
-                SELECT id, date, description, amount, currency, account_id, created_at
+                SELECT id, date, description, amount, currency, account_id
                 FROM transactions
                 WHERE account_id = $1
                 ORDER BY date DESC

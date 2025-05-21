@@ -1,15 +1,18 @@
 from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel
+from decimal import Decimal
 
 class Transaction(BaseModel):
     id: str
     date: datetime
     description: str
-    amount: float
+    amount: Decimal
     currency: str
     account_id: str
-    created_at: datetime
+
+    class Config:
+        from_attributes = True
 
 class TransactionCreate(BaseModel):
     date: datetime
