@@ -32,6 +32,36 @@ export interface Transaction {
   created_at: string;
 }
 
+export interface SpendingInsights {
+  total_spending: number;
+  average_transaction: number;
+  transaction_count: number;
+  top_spending_categories: Array<{
+    category: string;
+    amount: number;
+  }>;
+}
+
+export interface SavingsInsights {
+  total_savings: number;
+  total_withdrawals: number;
+  net_savings: number;
+  monthly_savings: Array<{
+    month: string;
+    amount: number;
+  }>;
+}
+
+export interface AccountInsights {
+  total_balance: number;
+  account_count: number;
+  account_distribution: Array<{
+    account_type: string;
+    balance: number;
+    percentage: number;
+  }>;
+}
+
 export const api = {
   async getUser(userId: string): Promise<User> {
     const response = await axios.get(`${API_BASE_URL}/users/${userId}`);
@@ -45,6 +75,21 @@ export const api = {
 
   async getAccountTransactions(accountId: string): Promise<Transaction[]> {
     const response = await axios.get(`${API_BASE_URL}/accounts/${accountId}/transactions`);
+    return response.data;
+  },
+
+  async getSpendingInsights(userId: string): Promise<SpendingInsights> {
+    const response = await axios.get(`${API_BASE_URL}/users/${userId}/analytics/spending`);
+    return response.data;
+  },
+
+  async getSavingsInsights(userId: string): Promise<SavingsInsights> {
+    const response = await axios.get(`${API_BASE_URL}/users/${userId}/analytics/savings`);
+    return response.data;
+  },
+
+  async getAccountInsights(userId: string): Promise<AccountInsights> {
+    const response = await axios.get(`${API_BASE_URL}/users/${userId}/analytics/accounts`);
     return response.data;
   }
 }; 
