@@ -1,7 +1,7 @@
 from typing import List
-from app.dao.database import get_db_connection
 from app.models.account import Account
 import logging
+from app.dao.database import get_db_connection
 
 class AccountDAO:
     async def get_accounts_by_owner(self, owner: str) -> List[Account]:
@@ -28,4 +28,16 @@ class AccountDAO:
                 ]
         except Exception as e:
             logging.error(f"Error fetching accounts: {str(e)}")
-            raise 
+            raise
+
+    @staticmethod
+    async def get_accounts_by_user_id(user_id: str) -> List[Account]:
+        async with get_db_connection() as db:
+            query = """
+                SELECT id, account_number, account_type, balance, currency, user_id, created_at, updated_at
+                FROM accounts
+                WHERE user_id = $1
+                ORDER BY created_at DESC
+            """
+            results = await db.fetch(query, user_id)
+            return [Account(**dict(row)) for row in results] 
