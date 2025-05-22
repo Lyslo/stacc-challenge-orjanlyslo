@@ -31,6 +31,32 @@ CREATE TABLE IF NOT EXISTS transactions (
     FOREIGN KEY (account_id) REFERENCES accounts(id)
 );
 
+-- Create savings_goals table
+CREATE TABLE IF NOT EXISTS savings_goals (
+    id SERIAL PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(id),
+    title VARCHAR(100) NOT NULL,
+    description TEXT,
+    target_amount DECIMAL(10,2) NOT NULL,
+    current_amount DECIMAL(10,2) DEFAULT 0,
+    xp_reward INTEGER NOT NULL,
+    icon_type VARCHAR(20) NOT NULL,
+    completed BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create savings_goal_milestones table
+CREATE TABLE IF NOT EXISTS savings_goal_milestones (
+    id SERIAL PRIMARY KEY,
+    goal_id INTEGER NOT NULL REFERENCES savings_goals(id) ON DELETE CASCADE,
+    amount DECIMAL(10,2) NOT NULL,
+    xp_reward INTEGER NOT NULL,
+    completed BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Insert test user (Alice)
 INSERT INTO users (username, email, date_of_birth)
 VALUES ('Alice', 'alice@example.com', '1990-01-01')
@@ -96,3 +122,204 @@ INSERT INTO transactions (id, date, description, amount, currency, account_id) V
     ('txn0019', '2023-08-18', 'Laundry Service', -230.00, 'NOK', 'acc123'),
     ('txn0020', '2023-08-18', 'Bookstore', -145.75, 'NOK', 'acc123'),
     ('txn0021', '2023-08-22', 'Savings Deposit', 3000.00, 'NOK', 'acc456');
+
+-- Insert sample savings goals data
+INSERT INTO savings_goals (user_id, title, description, target_amount, current_amount, xp_reward, icon_type, completed)
+SELECT 
+    id,
+    'Dream House',
+    'Save for your dream house',
+    2000000.00,
+    0.00,
+    1000,
+    'house',
+    false
+FROM users
+WHERE username = 'Alice'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO savings_goals (user_id, title, description, target_amount, current_amount, xp_reward, icon_type, completed)
+SELECT 
+    id,
+    'New Car',
+    'Save for a new car',
+    300000.00,
+    0.00,
+    500,
+    'car',
+    false
+FROM users
+WHERE username = 'Alice'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO savings_goals (user_id, title, description, target_amount, current_amount, xp_reward, icon_type, completed)
+SELECT 
+    id,
+    'Early Retirement',
+    'Build your retirement fund',
+    5000000.00,
+    0.00,
+    2000,
+    'retirement',
+    false
+FROM users
+WHERE username = 'Alice'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO savings_goals (user_id, title, description, target_amount, current_amount, xp_reward, icon_type, completed)
+SELECT 
+    id,
+    'Education Fund',
+    'Save for education or courses',
+    100000.00,
+    0.00,
+    300,
+    'education',
+    false
+FROM users
+WHERE username = 'Alice'
+ON CONFLICT DO NOTHING;
+
+-- Insert sample milestones for Dream House goal
+INSERT INTO savings_goal_milestones (goal_id, amount, xp_reward, completed)
+SELECT 
+    id,
+    200000.00,
+    100,
+    false
+FROM savings_goals
+WHERE title = 'Dream House'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO savings_goal_milestones (goal_id, amount, xp_reward, completed)
+SELECT 
+    id,
+    500000.00,
+    250,
+    false
+FROM savings_goals
+WHERE title = 'Dream House'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO savings_goal_milestones (goal_id, amount, xp_reward, completed)
+SELECT 
+    id,
+    1000000.00,
+    400,
+    false
+FROM savings_goals
+WHERE title = 'Dream House'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO savings_goal_milestones (goal_id, amount, xp_reward, completed)
+SELECT 
+    id,
+    2000000.00,
+    1000,
+    false
+FROM savings_goals
+WHERE title = 'Dream House'
+ON CONFLICT DO NOTHING;
+
+-- Insert sample milestones for New Car goal
+INSERT INTO savings_goal_milestones (goal_id, amount, xp_reward, completed)
+SELECT 
+    id,
+    50000.00,
+    100,
+    false
+FROM savings_goals
+WHERE title = 'New Car'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO savings_goal_milestones (goal_id, amount, xp_reward, completed)
+SELECT 
+    id,
+    150000.00,
+    200,
+    false
+FROM savings_goals
+WHERE title = 'New Car'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO savings_goal_milestones (goal_id, amount, xp_reward, completed)
+SELECT 
+    id,
+    300000.00,
+    500,
+    false
+FROM savings_goals
+WHERE title = 'New Car'
+ON CONFLICT DO NOTHING;
+
+-- Insert sample milestones for Early Retirement goal
+INSERT INTO savings_goal_milestones (goal_id, amount, xp_reward, completed)
+SELECT 
+    id,
+    500000.00,
+    200,
+    false
+FROM savings_goals
+WHERE title = 'Early Retirement'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO savings_goal_milestones (goal_id, amount, xp_reward, completed)
+SELECT 
+    id,
+    1500000.00,
+    500,
+    false
+FROM savings_goals
+WHERE title = 'Early Retirement'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO savings_goal_milestones (goal_id, amount, xp_reward, completed)
+SELECT 
+    id,
+    3000000.00,
+    1000,
+    false
+FROM savings_goals
+WHERE title = 'Early Retirement'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO savings_goal_milestones (goal_id, amount, xp_reward, completed)
+SELECT 
+    id,
+    5000000.00,
+    2000,
+    false
+FROM savings_goals
+WHERE title = 'Early Retirement'
+ON CONFLICT DO NOTHING;
+
+-- Insert sample milestones for Education Fund goal
+INSERT INTO savings_goal_milestones (goal_id, amount, xp_reward, completed)
+SELECT 
+    id,
+    25000.00,
+    100,
+    false
+FROM savings_goals
+WHERE title = 'Education Fund'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO savings_goal_milestones (goal_id, amount, xp_reward, completed)
+SELECT 
+    id,
+    50000.00,
+    150,
+    false
+FROM savings_goals
+WHERE title = 'Education Fund'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO savings_goal_milestones (goal_id, amount, xp_reward, completed)
+SELECT 
+    id,
+    100000.00,
+    300,
+    false
+FROM savings_goals
+WHERE title = 'Education Fund'
+ON CONFLICT DO NOTHING;
