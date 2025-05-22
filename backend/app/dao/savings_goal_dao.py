@@ -9,6 +9,18 @@ class SavingsGoalDAO:
         self.db = next(get_db())
 
     async def get_goals_by_user_id(self, user_id: str) -> List[SavingsGoal]:
+        # Get total savings for the user
+        total_savings = self.db.execute(
+            text("""
+                SELECT COALESCE(SUM(amount), 0) as total
+                FROM transactions
+                WHERE account_id IN (
+                    SELECT id FROM accounts WHERE user_id = :user_id AND account_type = 'Savings'
+                )
+            """),
+            {"user_id": user_id}
+        ).scalar()
+
         goals = self.db.execute(
             text("SELECT * FROM savings_goals WHERE user_id = :user_id"),
             {"user_id": user_id}
@@ -20,27 +32,62 @@ class SavingsGoalDAO:
             # Convert title to name to match the Pydantic model
             goal_dict['name'] = goal_dict.pop('title')
             
+            # Update completion status
+            is_completed = total_savings >= goal_dict['target_amount']
+            if is_completed != goal_dict['completed']:
+                self.db.execute(
+                    text("""
+                        UPDATE savings_goals 
+                        SET completed = :completed, 
+                            updated_at = CURRENT_TIMESTAMP 
+                        WHERE id = :goal_id
+                    """),
+                    {
+                        "completed": is_completed,
+                        "goal_id": goal_dict['id']
+                    }
+                )
+                goal_dict['completed'] = is_completed
+            
             # Get milestones for this goal
             milestones = self.db.execute(
                 text("SELECT * FROM savings_goal_milestones WHERE goal_id = :goal_id"),
                 {"goal_id": goal_dict['id']}
             ).mappings().all()
             
-            # Convert milestones to model instances
-            goal_dict['milestones'] = [
-                SavingsGoalMilestone(
-                    id=m['id'],
-                    goal_id=m['goal_id'],
-                    target_amount=float(m['amount']),
-                    xp_reward=m['xp_reward'],
-                    completed=m['completed'],
-                    created_at=m['created_at'],
-                    updated_at=m['updated_at']
-                ) for m in milestones
-            ]
+            # Convert milestones to model instances and update their completion status
+            goal_dict['milestones'] = []
+            for m in milestones:
+                milestone_completed = total_savings >= m['amount']
+                if milestone_completed != m['completed']:
+                    self.db.execute(
+                        text("""
+                            UPDATE savings_goal_milestones 
+                            SET completed = :completed, 
+                                updated_at = CURRENT_TIMESTAMP 
+                            WHERE id = :milestone_id
+                        """),
+                        {
+                            "completed": milestone_completed,
+                            "milestone_id": m['id']
+                        }
+                    )
+                
+                goal_dict['milestones'].append(
+                    SavingsGoalMilestone(
+                        id=m['id'],
+                        goal_id=m['goal_id'],
+                        target_amount=float(m['amount']),
+                        xp_reward=m['xp_reward'],
+                        completed=milestone_completed,
+                        created_at=m['created_at'],
+                        updated_at=m['updated_at']
+                    )
+                )
             
             result.append(SavingsGoal(**goal_dict))
         
+        self.db.commit()
         return result
 
     async def create_goal(self, user_id: str, goal_data: dict) -> SavingsGoal:

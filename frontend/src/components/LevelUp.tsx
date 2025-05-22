@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Confetti from 'react-confetti';
-import { api, SavingsGoal, SavingsGoalCreate } from '../services/api';
+import { api, SavingsGoal, SavingsGoalCreate, SavingsInsights } from '../services/api';
 
 // Character SVG for different levels
 const CharacterIcon: React.FC<{ level: number }> = ({ level }) => {
@@ -109,6 +109,10 @@ const LevelUp: React.FC<{ userId: string }> = ({ userId }) => {
   const [goals, setGoals] = useState<SavingsGoal[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [totalSavings, setTotalSavings] = useState<number>(0);
+  const [totalXp, setTotalXp] = useState<number>(0);
+  const [currentLevel, setCurrentLevel] = useState<number>(1);
+  const [levelProgress, setLevelProgress] = useState<number>(0);
   const [newGoal, setNewGoal] = useState<SavingsGoalCreate>({
     name: '',
     target_amount: 0,
@@ -120,13 +124,67 @@ const LevelUp: React.FC<{ userId: string }> = ({ userId }) => {
   const [showNewGoalForm, setShowNewGoalForm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(null);
 
+  // Calculate level based on XP
+  const calculateLevel = (xp: number): { level: number; progress: number } => {
+    const xpThresholds = [0, 1000, 2500, 5000, 10000];
+    let level = 1;
+    let progress = 0;
+
+    for (let i = xpThresholds.length - 1; i >= 0; i--) {
+      if (xp >= xpThresholds[i]) {
+        level = i + 1;
+        const currentThreshold = xpThresholds[i];
+        const nextThreshold = xpThresholds[i + 1] || currentThreshold * 2;
+        progress = ((xp - currentThreshold) / (nextThreshold - currentThreshold)) * 100;
+        break;
+      }
+    }
+
+    return { level, progress };
+  };
+
   const loadGoals = useCallback(async () => {
     try {
       setLoading(true);
       console.log('Loading goals for user:', userId);
-      const userGoals = await api.getUserSavingsGoals(userId);
+      const [userGoals, savingsInsights] = await Promise.all([
+        api.getUserSavingsGoals(userId),
+        api.getSavingsInsights(userId)
+      ]);
       console.log('Received goals:', userGoals);
+      console.log('Received savings insights:', savingsInsights);
       setGoals(userGoals);
+      setTotalSavings(savingsInsights.total_savings);
+
+      // Calculate total XP from completed goals and milestones
+      const xp = userGoals.reduce((total, goal) => {
+        // Add XP from completed goals
+        if (goal.completed) {
+          total += goal.xp_reward;
+        }
+        // Add XP from completed milestones that haven't been counted in the goal completion
+        total += goal.milestones.reduce((milestoneTotal, milestone) => {
+          // Only count milestone XP if the goal itself isn't completed
+          // This prevents double-counting since goal completion XP includes milestone XP
+          return milestoneTotal + (milestone.completed && !goal.completed ? milestone.xp_reward : 0);
+        }, 0);
+        return total;
+      }, 0);
+
+      setTotalXp(xp);
+      const { level, progress } = calculateLevel(xp);
+      setCurrentLevel(level);
+      setLevelProgress(progress);
+
+      // Show celebration if level up
+      if (level > 1) {
+        setShowConfetti(true);
+        setCelebrationMessage(`Level ${level} achieved! 🎉`);
+        setTimeout(() => {
+          setShowConfetti(false);
+          setCelebrationMessage('');
+        }, 5000);
+      }
     } catch (err) {
       console.error('Error loading goals:', err);
       setError('Failed to load savings goals');
@@ -143,7 +201,10 @@ const LevelUp: React.FC<{ userId: string }> = ({ userId }) => {
   const handleCreateGoal = async () => {
     try {
       console.log('Creating new goal:', newGoal);
-      const createdGoal = await api.createSavingsGoal(userId, newGoal);
+      const createdGoal = await api.createSavingsGoal(userId, {
+        ...newGoal,
+        current_amount: totalSavings // Use total savings as current amount
+      });
       console.log('Created goal:', createdGoal);
       setGoals([...goals, createdGoal]);
       setNewGoal({
@@ -255,17 +316,17 @@ const LevelUp: React.FC<{ userId: string }> = ({ userId }) => {
               whileHover={{ scale: 1.1 }}
               transition={{ type: "spring", stiffness: 300 }}
             >
-              <CharacterIcon level={1} />
+              <CharacterIcon level={currentLevel} />
             </motion.div>
             <div>
-              <h2 className="text-2xl font-bold text-gray-800">Level 1</h2>
+              <h2 className="text-2xl font-bold text-gray-800">Level {currentLevel}</h2>
               <div className="w-48 bg-gray-200 rounded-full h-2.5">
                 <div
                   className="bg-blue-600 h-2.5 rounded-full"
-                  style={{ width: '0%' }}
+                  style={{ width: `${levelProgress}%` }}
                 ></div>
               </div>
-              <p className="text-sm text-gray-600">0 XP</p>
+              <p className="text-sm text-gray-600">{totalXp} XP</p>
             </div>
           </div>
         </div>
@@ -323,18 +384,11 @@ const LevelUp: React.FC<{ userId: string }> = ({ userId }) => {
                 </div>
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Current Amount
+                    Current Savings
                   </label>
-                  <input
-                    type="text"
-                    value={newGoal.current_amount}
-                    onChange={(e) => setNewGoal({
-                      ...newGoal,
-                      current_amount: parseFloat(e.target.value) || 0
-                    })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Enter current amount"
-                  />
+                  <div className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-md">
+                    {formatCurrency(totalSavings)}
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Icon</label>
@@ -411,20 +465,27 @@ const LevelUp: React.FC<{ userId: string }> = ({ userId }) => {
                 <div className="mb-4">
                   <div className="w-full bg-gray-200 rounded-full h-2.5">
                     <div
-                      className="bg-blue-600 h-2.5 rounded-full"
-                      style={{ width: `${(goal.current_amount / goal.target_amount) * 100}%` }}
+                      className={`h-2.5 rounded-full ${
+                        totalSavings >= goal.target_amount ? 'bg-green-600' : 'bg-blue-600'
+                      }`}
+                      style={{ width: `${Math.min((totalSavings / goal.target_amount) * 100, 100)}%` }}
                     ></div>
                   </div>
-                  <p className="text-sm text-gray-600 mt-1">
-                    {formatCurrency(goal.current_amount)} / {formatCurrency(goal.target_amount)}
-                  </p>
+                  <div className="flex justify-between items-center mt-1">
+                    <p className="text-sm text-gray-600">
+                      {formatCurrency(totalSavings)} / {formatCurrency(goal.target_amount)}
+                    </p>
+                    {totalSavings >= goal.target_amount && (
+                      <span className="text-sm font-medium text-green-600">Completed! 🎉</span>
+                    )}
+                  </div>
                 </div>
                 <div className="space-y-2">
                   {goal.milestones.map((milestone) => (
                     <div key={milestone.id} className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         <div className={`w-2 h-2 rounded-full ${
-                          milestone.completed ? 'bg-green-500' : 'bg-gray-300'
+                          totalSavings >= milestone.target_amount ? 'bg-green-500' : 'bg-gray-300'
                         }`} />
                         <span className="text-sm text-gray-600">
                           {formatCurrency(milestone.target_amount)}

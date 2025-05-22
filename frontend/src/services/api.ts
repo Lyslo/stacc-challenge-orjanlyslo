@@ -78,6 +78,8 @@ export interface SavingsGoal {
   target_amount: number;
   current_amount: number;
   icon_type: string;
+  completed: boolean;
+  xp_reward: number;
   milestones: SavingsGoalMilestone[];
 }
 

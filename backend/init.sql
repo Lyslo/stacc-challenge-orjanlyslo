@@ -123,6 +123,52 @@ INSERT INTO transactions (id, date, description, amount, currency, account_id) V
     ('txn0020', '2023-08-18', 'Bookstore', -145.75, 'NOK', 'acc123'),
     ('txn0021', '2023-08-22', 'Savings Deposit', 3000.00, 'NOK', 'acc456');
 
+-- Add more savings transactions for Alice (2022-2023)
+INSERT INTO transactions (id, date, description, amount, currency, account_id) VALUES
+    -- Regular monthly savings deposits (2022)
+    ('txn0022', '2022-01-15', 'Monthly Savings', 5000.00, 'NOK', 'acc456'),
+    ('txn0023', '2022-02-15', 'Monthly Savings', 5000.00, 'NOK', 'acc456'),
+    ('txn0024', '2022-03-15', 'Monthly Savings', 5000.00, 'NOK', 'acc456'),
+    ('txn0025', '2022-04-15', 'Monthly Savings', 5000.00, 'NOK', 'acc456'),
+    ('txn0026', '2022-05-15', 'Monthly Savings', 5000.00, 'NOK', 'acc456'),
+    ('txn0027', '2022-06-15', 'Monthly Savings', 5000.00, 'NOK', 'acc456'),
+    ('txn0028', '2022-07-15', 'Monthly Savings', 5000.00, 'NOK', 'acc456'),
+    ('txn0029', '2022-08-15', 'Monthly Savings', 5000.00, 'NOK', 'acc456'),
+    ('txn0030', '2022-09-15', 'Monthly Savings', 5000.00, 'NOK', 'acc456'),
+    ('txn0031', '2022-10-15', 'Monthly Savings', 5000.00, 'NOK', 'acc456'),
+    ('txn0032', '2022-11-15', 'Monthly Savings', 5000.00, 'NOK', 'acc456'),
+    ('txn0033', '2022-12-15', 'Monthly Savings', 5000.00, 'NOK', 'acc456'),
+    
+    -- Regular monthly savings deposits (2023)
+    ('txn0034', '2023-01-15', 'Monthly Savings', 5000.00, 'NOK', 'acc456'),
+    ('txn0035', '2023-02-15', 'Monthly Savings', 5000.00, 'NOK', 'acc456'),
+    ('txn0036', '2023-03-15', 'Monthly Savings', 5000.00, 'NOK', 'acc456'),
+    ('txn0037', '2023-04-15', 'Monthly Savings', 5000.00, 'NOK', 'acc456'),
+    ('txn0038', '2023-05-15', 'Monthly Savings', 5000.00, 'NOK', 'acc456'),
+    ('txn0039', '2023-06-15', 'Monthly Savings', 5000.00, 'NOK', 'acc456'),
+    ('txn0040', '2023-07-15', 'Monthly Savings', 5000.00, 'NOK', 'acc456'),
+    
+    -- Extra savings deposits
+    ('txn0041', '2022-04-20', 'Tax Return', 25000.00, 'NOK', 'acc456'),
+    ('txn0042', '2022-08-01', 'Summer Bonus', 15000.00, 'NOK', 'acc456'),
+    ('txn0043', '2022-12-20', 'Christmas Bonus', 20000.00, 'NOK', 'acc456'),
+    ('txn0044', '2023-04-20', 'Tax Return', 28000.00, 'NOK', 'acc456'),
+    ('txn0045', '2023-07-01', 'Performance Bonus', 18000.00, 'NOK', 'acc456'),
+    
+    -- Interest payments
+    ('txn0046', '2022-06-30', 'Interest Payment', 1200.00, 'NOK', 'acc456'),
+    ('txn0047', '2022-12-31', 'Interest Payment', 1500.00, 'NOK', 'acc456'),
+    ('txn0048', '2023-06-30', 'Interest Payment', 1800.00, 'NOK', 'acc456');
+
+-- Update the savings account balance to reflect all transactions
+UPDATE accounts 
+SET balance = (
+    SELECT COALESCE(SUM(amount), 0)
+    FROM transactions
+    WHERE account_id = 'acc456'
+)
+WHERE id = 'acc456';
+
 -- Insert sample savings goals data
 INSERT INTO savings_goals (user_id, title, description, target_amount, current_amount, xp_reward, icon_type, completed)
 SELECT 
