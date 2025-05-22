@@ -32,24 +32,5 @@ docker-compose up --build
 This will start all services:
 - Frontend: http://localhost:3000
 - Backend API: http://localhost:5000
-- PostgreSQL: localhost:5432
+- PostgreSQL: localhost:5433
 
-## Development
-
-The application is configured with hot-reloading for both frontend and backend:
-
-- Frontend changes will automatically reload in the browser
-- Backend changes will automatically reload the server
-
-## API Endpoints
-
-- `GET /ping`: Health check endpoint
-- `GET /health`: Database health check endpoint
-
-## Environment Variables
-
-### Backend
-- `DATABASE_URL`: PostgreSQL connection string (default: postgresql://postgres:postgres@db:5432/postgres)
-
-### Frontend
-- `REACT_APP_API_URL`: Backend API URL (default: http://localhost:5000)
