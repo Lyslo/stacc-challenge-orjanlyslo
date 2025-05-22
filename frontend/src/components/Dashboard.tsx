@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { api, User, Account, Transaction } from '../services/api';
 import Analytics from './Analytics';
+import LevelUp from './LevelUp';
 
 const Dashboard: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -202,11 +203,8 @@ const Dashboard: React.FC = () => {
 
           {/* Level Up Tab */}
           {activeTab === 2 && (
-            <div className="text-center py-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Coming Soon!</h2>
-              <p className="text-gray-600">
-                The gamified savings experience is under development.
-              </p>
+            <div className="bg-white rounded-lg shadow-lg p-6">
+              <LevelUp />
             </div>
           )}
         </div>
