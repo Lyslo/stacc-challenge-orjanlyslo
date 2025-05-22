@@ -1,28 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Confetti from 'react-confetti';
-
-interface SavingsGoal {
-  id: string;
-  title: string;
-  description: string;
-  targetAmount: number;
-  currentAmount: number;
-  xpReward: number;
-  completed: boolean;
-  bossIcon: React.ReactNode;
-  milestones: {
-    amount: number;
-    xpReward: number;
-    completed: boolean;
-  }[];
-}
-
-interface Milestone {
-  amount: number;
-  xpReward: number;
-  completed: boolean;
-}
+import { api, SavingsGoal, SavingsGoalCreate } from '../services/api';
 
 // Character SVG for different levels
 const CharacterIcon: React.FC<{ level: number }> = ({ level }) => {
@@ -113,89 +92,6 @@ const BossIcons = {
   ),
 };
 
-const initialGoals: SavingsGoal[] = [
-  {
-    id: '1',
-    title: 'Dream House',
-    description: 'Save for your dream house',
-    targetAmount: 2000000,
-    currentAmount: 0,
-    xpReward: 1000,
-    completed: false,
-    bossIcon: BossIcons.house,
-    milestones: [
-      { amount: 200000, xpReward: 100, completed: false },
-      { amount: 500000, xpReward: 250, completed: false },
-      { amount: 1000000, xpReward: 400, completed: false },
-      { amount: 2000000, xpReward: 1000, completed: false }
-    ]
-  },
-  {
-    id: '2',
-    title: 'New Car',
-    description: 'Save for a new car',
-    targetAmount: 300000,
-    currentAmount: 0,
-    xpReward: 500,
-    completed: false,
-    bossIcon: BossIcons.car,
-    milestones: [
-      { amount: 50000, xpReward: 100, completed: false },
-      { amount: 150000, xpReward: 200, completed: false },
-      { amount: 300000, xpReward: 500, completed: false }
-    ]
-  },
-  {
-    id: '3',
-    title: 'Early Retirement',
-    description: 'Build your retirement fund',
-    targetAmount: 5000000,
-    currentAmount: 0,
-    xpReward: 2000,
-    completed: false,
-    bossIcon: BossIcons.retirement,
-    milestones: [
-      { amount: 500000, xpReward: 200, completed: false },
-      { amount: 1500000, xpReward: 500, completed: false },
-      { amount: 3000000, xpReward: 1000, completed: false },
-      { amount: 5000000, xpReward: 2000, completed: false }
-    ]
-  },
-  {
-    id: '4',
-    title: 'Education Fund',
-    description: 'Save for education or courses',
-    targetAmount: 100000,
-    currentAmount: 0,
-    xpReward: 300,
-    completed: false,
-    bossIcon: BossIcons.education,
-    milestones: [
-      { amount: 25000, xpReward: 100, completed: false },
-      { amount: 50000, xpReward: 150, completed: false },
-      { amount: 100000, xpReward: 300, completed: false }
-    ]
-  }
-];
-
-const generateMilestones = (targetAmount: number): Milestone[] => {
-  const milestones: Milestone[] = [];
-  const steps = [0.1, 0.25, 0.5, 0.75, 1];
-  const xpRewards = [100, 250, 500, 750, 1000];
-
-  steps.forEach((step, index) => {
-    if (step * targetAmount >= 1000) { // Only add milestones for amounts >= 1000 NOK
-      milestones.push({
-        amount: Math.round(step * targetAmount),
-        xpReward: xpRewards[index],
-        completed: false
-      });
-    }
-  });
-
-  return milestones;
-};
-
 const motivationalMessages = [
   "Amazing progress! Keep going! 🚀",
   "You're crushing it! 💪",
@@ -209,88 +105,68 @@ const motivationalMessages = [
   "Future you is proud! 🌠"
 ];
 
-const LevelUp: React.FC = () => {
-  const [goals, setGoals] = useState<SavingsGoal[]>(initialGoals);
-  const [xp, setXp] = useState(0);
-  const [level, setLevel] = useState(1);
+const LevelUp: React.FC<{ userId: string }> = ({ userId }) => {
+  const [goals, setGoals] = useState<SavingsGoal[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [newGoal, setNewGoal] = useState<SavingsGoalCreate>({
+    name: '',
+    target_amount: 0,
+    current_amount: 0,
+    icon_type: 'default'
+  });
   const [showConfetti, setShowConfetti] = useState(false);
   const [celebrationMessage, setCelebrationMessage] = useState('');
   const [showNewGoalForm, setShowNewGoalForm] = useState(false);
-  const [newGoal, setNewGoal] = useState({
-    title: '',
-    description: '',
-    targetAmount: 0,
-    icon: 'house' as keyof typeof BossIcons
-  });
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(null);
 
-  const calculateLevel = (xp: number) => {
-    return Math.floor(xp / 1000) + 1;
+  const loadGoals = useCallback(async () => {
+    try {
+      setLoading(true);
+      console.log('Loading goals for user:', userId);
+      const userGoals = await api.getUserSavingsGoals(userId);
+      console.log('Received goals:', userGoals);
+      setGoals(userGoals);
+    } catch (err) {
+      console.error('Error loading goals:', err);
+      setError('Failed to load savings goals');
+    } finally {
+      setLoading(false);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    console.log('useEffect triggered, userId:', userId);
+    loadGoals();
+  }, [userId, loadGoals]);
+
+  const handleCreateGoal = async () => {
+    try {
+      console.log('Creating new goal:', newGoal);
+      const createdGoal = await api.createSavingsGoal(userId, newGoal);
+      console.log('Created goal:', createdGoal);
+      setGoals([...goals, createdGoal]);
+      setNewGoal({
+        name: '',
+        target_amount: 0,
+        current_amount: 0,
+        icon_type: 'default'
+      });
+    } catch (err) {
+      console.error('Error creating goal:', err);
+      setError('Failed to create savings goal');
+    }
   };
 
-  const handleMilestoneComplete = (goalId: string, milestoneIndex: number) => {
-    setGoals(goals.map(goal => {
-      if (goal.id === goalId) {
-        const milestone = goal.milestones[milestoneIndex];
-        if (!milestone.completed) {
-          const newXp = xp + milestone.xpReward;
-          setXp(newXp);
-          const newLevel = calculateLevel(newXp);
-          if (newLevel > level) {
-            setLevel(newLevel);
-          }
-          
-          const updatedMilestones = [...goal.milestones];
-          updatedMilestones[milestoneIndex] = { ...milestone, completed: true };
-          
-          const allMilestonesCompleted = updatedMilestones.every(m => m.completed);
-          
-          // Show celebration
-          setShowConfetti(true);
-          setCelebrationMessage(motivationalMessages[Math.floor(Math.random() * motivationalMessages.length)]);
-          setTimeout(() => {
-            setShowConfetti(false);
-            setCelebrationMessage('');
-          }, 3000);
-          
-          return {
-            ...goal,
-            milestones: updatedMilestones,
-            completed: allMilestonesCompleted
-          };
-        }
-      }
-      return goal;
-    }));
-  };
-
-  const handleCreateGoal = (e: React.FormEvent) => {
-    e.preventDefault();
-    const newGoalWithId: SavingsGoal = {
-      id: Date.now().toString(),
-      title: newGoal.title,
-      description: newGoal.description,
-      targetAmount: newGoal.targetAmount,
-      currentAmount: 0,
-      xpReward: 1000,
-      completed: false,
-      bossIcon: BossIcons[newGoal.icon],
-      milestones: generateMilestones(newGoal.targetAmount)
-    };
-
-    setGoals([...goals, newGoalWithId]);
-    setShowNewGoalForm(false);
-    setNewGoal({
-      title: '',
-      description: '',
-      targetAmount: 0,
-      icon: 'house'
-    });
-  };
-
-  const handleDeleteGoal = (goalId: string) => {
-    setGoals(goals.filter(goal => goal.id !== goalId));
-    setShowDeleteConfirm(null);
+  const handleDeleteGoal = async (goalId: number) => {
+    try {
+      await api.deleteSavingsGoal(goalId);
+      setGoals(goals.filter(goal => goal.id !== goalId));
+      setShowDeleteConfirm(null);
+    } catch (err) {
+      console.error('Error deleting goal:', err);
+      setError('Failed to delete savings goal');
+    }
   };
 
   const formatCurrency = (amount: number) => {
@@ -301,6 +177,14 @@ const LevelUp: React.FC = () => {
       maximumFractionDigits: 0,
     }).format(amount);
   };
+
+  if (loading) {
+    return <div className="p-6">Loading savings goals...</div>;
+  }
+
+  if (error) {
+    return <div className="p-6 text-red-500">{error}</div>;
+  }
 
   return (
     <div className="p-6">
@@ -371,17 +255,17 @@ const LevelUp: React.FC = () => {
               whileHover={{ scale: 1.1 }}
               transition={{ type: "spring", stiffness: 300 }}
             >
-              <CharacterIcon level={level} />
+              <CharacterIcon level={1} />
             </motion.div>
             <div>
-              <h2 className="text-2xl font-bold text-gray-800">Level {level}</h2>
+              <h2 className="text-2xl font-bold text-gray-800">Level 1</h2>
               <div className="w-48 bg-gray-200 rounded-full h-2.5">
                 <div
                   className="bg-blue-600 h-2.5 rounded-full"
-                  style={{ width: `${(xp % 1000) / 10}%` }}
+                  style={{ width: '0%' }}
                 ></div>
               </div>
-              <p className="text-sm text-gray-600">{xp} XP</p>
+              <p className="text-sm text-gray-600">0 XP</p>
             </div>
           </div>
         </div>
@@ -408,47 +292,55 @@ const LevelUp: React.FC = () => {
           >
             <div className="bg-white rounded-lg p-6 w-full max-w-md">
               <h2 className="text-2xl font-bold mb-4">Create New Goal</h2>
-              <form onSubmit={handleCreateGoal} className="space-y-4">
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                handleCreateGoal();
+                setShowNewGoalForm(false);
+              }} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Title</label>
+                  <label className="block text-sm font-medium text-gray-700">Goal Name</label>
                   <input
                     type="text"
-                    value={newGoal.title}
-                    onChange={(e) => setNewGoal({ ...newGoal, title: e.target.value })}
+                    value={newGoal.name}
+                    onChange={(e) => setNewGoal({ ...newGoal, name: e.target.value })}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    required
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Description</label>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Target Amount
+                  </label>
                   <input
                     type="text"
-                    value={newGoal.description}
-                    onChange={(e) => setNewGoal({ ...newGoal, description: e.target.value })}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    required
+                    value={newGoal.target_amount}
+                    onChange={(e) => setNewGoal({
+                      ...newGoal,
+                      target_amount: parseFloat(e.target.value) || 0
+                    })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter target amount"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Target Amount (NOK)</label>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Current Amount
+                  </label>
                   <input
                     type="text"
-                    value={newGoal.targetAmount}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/[^0-9]/g, '');
-                      setNewGoal({ ...newGoal, targetAmount: value ? Number(value) : 0 });
-                    }}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    pattern="[0-9]*"
-                    inputMode="numeric"
-                    required
+                    value={newGoal.current_amount}
+                    onChange={(e) => setNewGoal({
+                      ...newGoal,
+                      current_amount: parseFloat(e.target.value) || 0
+                    })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter current amount"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Icon</label>
                   <select
-                    value={newGoal.icon}
-                    onChange={(e) => setNewGoal({ ...newGoal, icon: e.target.value as keyof typeof BossIcons })}
+                    value={newGoal.icon_type}
+                    onChange={(e) => setNewGoal({ ...newGoal, icon_type: e.target.value })}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   >
                     <option value="generic">Generic</option>
@@ -484,20 +376,18 @@ const LevelUp: React.FC = () => {
         {goals.map((goal) => (
           <motion.div
             key={goal.id}
-            className={`bg-white rounded-lg shadow-lg p-6 ${
-              goal.completed ? 'opacity-75' : ''
-            }`}
+            className="bg-white rounded-lg shadow-lg p-6"
             whileHover={{ scale: 1.02 }}
             transition={{ type: "spring", stiffness: 300 }}
           >
             <div className="flex items-start space-x-4">
               <div className="w-16 h-16">
-                {goal.bossIcon}
+                {BossIcons[goal.icon_type as keyof typeof BossIcons] || BossIcons.generic}
               </div>
               <div className="flex-1">
                 <div className="flex justify-between items-start">
                   <h3 className="text-xl font-semibold text-gray-800">
-                    {goal.title}
+                    {goal.name}
                   </h3>
                   <button
                     onClick={() => setShowDeleteConfirm(goal.id)}
@@ -518,44 +408,32 @@ const LevelUp: React.FC = () => {
                     </svg>
                   </button>
                 </div>
-                <p className="text-gray-600 mb-2">{goal.description}</p>
                 <div className="mb-4">
                   <div className="w-full bg-gray-200 rounded-full h-2.5">
                     <div
                       className="bg-blue-600 h-2.5 rounded-full"
-                      style={{ width: `${(goal.currentAmount / goal.targetAmount) * 100}%` }}
+                      style={{ width: `${(goal.current_amount / goal.target_amount) * 100}%` }}
                     ></div>
                   </div>
                   <p className="text-sm text-gray-600 mt-1">
-                    {formatCurrency(goal.currentAmount)} / {formatCurrency(goal.targetAmount)}
+                    {formatCurrency(goal.current_amount)} / {formatCurrency(goal.target_amount)}
                   </p>
                 </div>
                 <div className="space-y-2">
-                  {goal.milestones.map((milestone, index) => (
-                    <div key={index} className="flex items-center justify-between">
+                  {goal.milestones.map((milestone) => (
+                    <div key={milestone.id} className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         <div className={`w-2 h-2 rounded-full ${
                           milestone.completed ? 'bg-green-500' : 'bg-gray-300'
                         }`} />
                         <span className="text-sm text-gray-600">
-                          {formatCurrency(milestone.amount)}
+                          {formatCurrency(milestone.target_amount)}
                         </span>
                       </div>
                       <div className="flex items-center space-x-2">
                         <span className="text-sm text-blue-600 font-medium">
-                          +{milestone.xpReward} XP
+                          +{milestone.xp_reward} XP
                         </span>
-                        <button
-                          onClick={() => handleMilestoneComplete(goal.id, index)}
-                          disabled={milestone.completed}
-                          className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            milestone.completed
-                              ? 'bg-green-100 text-green-800 cursor-not-allowed'
-                              : 'bg-blue-600 text-white hover:bg-blue-700'
-                          }`}
-                        >
-                          {milestone.completed ? 'Completed' : 'Complete'}
-                        </button>
                       </div>
                     </div>
                   ))}

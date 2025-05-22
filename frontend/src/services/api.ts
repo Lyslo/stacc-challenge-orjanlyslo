@@ -62,34 +62,87 @@ export interface AccountInsights {
   }>;
 }
 
+export interface SavingsGoalMilestone {
+  id: number;
+  savings_goal_id: number;
+  description: string;
+  target_amount: number;
+  xp_reward: number;
+  completed: boolean;
+}
+
+export interface SavingsGoal {
+  id: number;
+  user_id: string;
+  name: string;
+  target_amount: number;
+  current_amount: number;
+  icon_type: string;
+  milestones: SavingsGoalMilestone[];
+}
+
+export interface SavingsGoalCreate {
+  name: string;
+  target_amount: number;
+  current_amount: number;
+  icon_type: string;
+}
+
 export const api = {
-  async getUser(userId: string): Promise<User> {
+  getUser: async (userId: string) => {
+    console.log('API: Getting user:', userId);
     const response = await axios.get(`${API_BASE_URL}/users/${userId}`);
+    console.log('API: User response:', response.data);
     return response.data;
   },
 
-  async getUserAccounts(userId: string): Promise<Account[]> {
+  getUserAccounts: async (userId: string): Promise<Account[]> => {
     const response = await axios.get(`${API_BASE_URL}/users/${userId}/accounts`);
     return response.data;
   },
 
-  async getAccountTransactions(accountId: string): Promise<Transaction[]> {
+  getAccountTransactions: async (accountId: string): Promise<Transaction[]> => {
     const response = await axios.get(`${API_BASE_URL}/accounts/${accountId}/transactions`);
     return response.data;
   },
 
-  async getSpendingInsights(userId: string): Promise<SpendingInsights> {
+  getSpendingInsights: async (userId: string): Promise<SpendingInsights> => {
     const response = await axios.get(`${API_BASE_URL}/users/${userId}/analytics/spending`);
     return response.data;
   },
 
-  async getSavingsInsights(userId: string): Promise<SavingsInsights> {
+  getSavingsInsights: async (userId: string): Promise<SavingsInsights> => {
     const response = await axios.get(`${API_BASE_URL}/users/${userId}/analytics/savings`);
     return response.data;
   },
 
-  async getAccountInsights(userId: string): Promise<AccountInsights> {
+  getAccountInsights: async (userId: string): Promise<AccountInsights> => {
     const response = await axios.get(`${API_BASE_URL}/users/${userId}/analytics/accounts`);
     return response.data;
+  },
+
+  getUserSavingsGoals: async (userId: string): Promise<SavingsGoal[]> => {
+    console.log('API: Getting savings goals for user:', userId);
+    const response = await axios.get(`${API_BASE_URL}/users/${userId}/savings-goals`);
+    console.log('API: Savings goals response:', response.data);
+    return response.data;
+  },
+
+  createSavingsGoal: async (userId: string, goal: SavingsGoalCreate): Promise<SavingsGoal> => {
+    console.log('API: Creating savings goal for user:', userId, goal);
+    const response = await axios.post(`${API_BASE_URL}/users/${userId}/savings-goals`, {
+      name: goal.name,
+      target_amount: Number(goal.target_amount),
+      current_amount: Number(goal.current_amount),
+      icon_type: goal.icon_type
+    });
+    console.log('API: Create savings goal response:', response.data);
+    return response.data;
+  },
+
+  deleteSavingsGoal: async (goalId: number): Promise<void> => {
+    console.log('API: Deleting savings goal:', goalId);
+    await axios.delete(`${API_BASE_URL}/savings-goals/${goalId}`);
+    console.log('API: Savings goal deleted successfully');
   }
 }; 

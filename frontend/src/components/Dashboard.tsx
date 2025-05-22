@@ -202,9 +202,9 @@ const Dashboard: React.FC = () => {
           {activeTab === 1 && user && <Analytics userId={user.id} />}
 
           {/* Level Up Tab */}
-          {activeTab === 2 && (
+          {activeTab === 2 && user && (
             <div className="bg-white rounded-lg shadow-lg p-6">
-              <LevelUp />
+              <LevelUp userId={user.id} />
             </div>
           )}
         </div>
