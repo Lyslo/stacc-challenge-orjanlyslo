@@ -22,6 +22,7 @@ This is a full-stack web application built with React (TypeScript + Tailwind CSS
 ```bash
 git clone https://github.com/Lyslo/stacc-challenge-orjanlyslo.git
 cd stacc-challenge-orjanlyslo
+git checkout budgeting-and-savings
 ```
 
 2. Start the application:
