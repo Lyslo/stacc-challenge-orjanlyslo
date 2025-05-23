@@ -17,7 +17,7 @@ const Dashboard: React.FC = () => {
       try {
         setLoading(true);
         // Using Alice's UUID for the showcase application
-        const userData = await api.getUser('8c3721fd-d83b-4cc4-814b-dec42a4914e4');
+        const userData = await api.getUser('123e4567-e89b-12d3-a456-426614174000');
         setUser(userData);
         setError(null);
       } catch (err) {

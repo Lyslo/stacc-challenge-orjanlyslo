@@ -57,46 +57,17 @@ CREATE TABLE IF NOT EXISTS savings_goal_milestones (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Insert test user (Alice)
-INSERT INTO users (username, email, date_of_birth)
-VALUES ('Alice', 'alice@example.com', '1990-01-01')
+-- Insert test user (Alice) with a fixed UUID
+INSERT INTO users (id, username, email, date_of_birth)
+VALUES ('123e4567-e89b-12d3-a456-426614174000', 'Alice', 'alice@example.com', '1990-01-01')
 ON CONFLICT (username) DO NOTHING;
 
 -- Insert sample accounts data
 INSERT INTO accounts (id, account_number, account_type, balance, currency, user_id)
-SELECT 
-    'acc123',
-    '********1234',
-    'Checking',
-    15000.25,
-    'NOK',
-    id
-FROM users
-WHERE username = 'Alice'
-ON CONFLICT (id) DO NOTHING;
-
-INSERT INTO accounts (id, account_number, account_type, balance, currency, user_id)
-SELECT 
-    'acc456',
-    '********5678',
-    'Savings',
-    25000.75,
-    'NOK',
-    id
-FROM users
-WHERE username = 'Alice'
-ON CONFLICT (id) DO NOTHING;
-
-INSERT INTO accounts (id, account_number, account_type, balance, currency, user_id)
-SELECT 
-    'acc789',
-    '********9101',
-    'Pension',
-    25000.75,
-    'NOK',
-    id
-FROM users
-WHERE username = 'Alice'
+VALUES 
+    ('acc123', '********1234', 'Checking', 15000.25, 'NOK', '123e4567-e89b-12d3-a456-426614174000'),
+    ('acc456', '********5678', 'Savings', 25000.75, 'NOK', '123e4567-e89b-12d3-a456-426614174000'),
+    ('acc789', '********9101', 'Pension', 25000.75, 'NOK', '123e4567-e89b-12d3-a456-426614174000')
 ON CONFLICT (id) DO NOTHING;
 
 -- Insert sample transactions data
@@ -171,59 +142,11 @@ WHERE id = 'acc456';
 
 -- Insert sample savings goals data
 INSERT INTO savings_goals (user_id, title, description, target_amount, current_amount, xp_reward, icon_type, completed)
-SELECT 
-    id,
-    'Dream House',
-    'Save for your dream house',
-    2000000.00,
-    0.00,
-    1000,
-    'house',
-    false
-FROM users
-WHERE username = 'Alice'
-ON CONFLICT DO NOTHING;
-
-INSERT INTO savings_goals (user_id, title, description, target_amount, current_amount, xp_reward, icon_type, completed)
-SELECT 
-    id,
-    'New Car',
-    'Save for a new car',
-    300000.00,
-    0.00,
-    500,
-    'car',
-    false
-FROM users
-WHERE username = 'Alice'
-ON CONFLICT DO NOTHING;
-
-INSERT INTO savings_goals (user_id, title, description, target_amount, current_amount, xp_reward, icon_type, completed)
-SELECT 
-    id,
-    'Early Retirement',
-    'Build your retirement fund',
-    5000000.00,
-    0.00,
-    2000,
-    'retirement',
-    false
-FROM users
-WHERE username = 'Alice'
-ON CONFLICT DO NOTHING;
-
-INSERT INTO savings_goals (user_id, title, description, target_amount, current_amount, xp_reward, icon_type, completed)
-SELECT 
-    id,
-    'Education Fund',
-    'Save for education or courses',
-    100000.00,
-    0.00,
-    300,
-    'education',
-    false
-FROM users
-WHERE username = 'Alice'
+VALUES 
+    ('123e4567-e89b-12d3-a456-426614174000', 'Dream House', 'Save for your dream house', 2000000.00, 0.00, 1000, 'house', false),
+    ('123e4567-e89b-12d3-a456-426614174000', 'New Car', 'Save for a new car', 300000.00, 0.00, 500, 'car', false),
+    ('123e4567-e89b-12d3-a456-426614174000', 'Early Retirement', 'Build your retirement fund', 5000000.00, 0.00, 2000, 'retirement', false),
+    ('123e4567-e89b-12d3-a456-426614174000', 'Education Fund', 'Save for education or courses', 100000.00, 0.00, 300, 'education', false)
 ON CONFLICT DO NOTHING;
 
 -- Insert sample milestones for Dream House goal
